@@ -1,0 +1,166 @@
+{
+  "name": "Standard Round - AB Lines",
+  "displayMode": "center",
+  "maxCounter": 999,
+  "states": [
+    {
+      "name": "Preparation",
+      "duration": 10
+    },
+    {
+      "name": "Line A Shooting",
+      "duration": 120
+    },
+    {
+      "name": "Line B Shooting",
+      "duration": 120
+    }
+  ],
+  "events": [
+    {
+      "name": "prep_start",
+      "trigger": "counter",
+      "value": 0,
+      "actions": {
+        "trafficLight": "red",
+        "setDisplay": { "center": 10 },
+        "setCountDown": { "center": true },
+        "buzzer": { "cycles": 2, "frequency": 2 }
+      }
+    },
+    {
+      "name": "line_a_start",
+      "trigger": "counter",
+      "value": 10,
+      "actions": {
+        "trafficLight": "green",
+        "setDisplay": { "center": 120 },
+        "setCountDown": { "center": true },
+        "buzzer": { "cycles": 1, "frequency": 2 }
+      }
+    },
+    {
+      "name": "line_a_warning",
+      "trigger": "counter",
+      "value": 100,
+      "actions": {
+        "trafficLight": "yellow"
+      }
+    },
+    {
+      "name": "line_a_end",
+      "trigger": "counter",
+      "value": 130,
+      "actions": {
+        "trafficLight": "red",
+        "buzzer": { "cycles": 3, "frequency": 2 }
+      }
+    },
+    {
+      "name": "line_b_prep",
+      "trigger": "counter",
+      "value": 130,
+      "actions": {
+        "trafficLight": "red",
+        "setDisplay": { "center": 10 },
+        "setCountDown": { "center": true }
+      }
+    },
+    {
+      "name": "line_b_start",
+      "trigger": "counter",
+      "value": 140,
+      "actions": {
+        "trafficLight": "green",
+        "setDisplay": { "center": 120 },
+        "setCountDown": { "center": true },
+        "buzzer": { "cycles": 2, "frequency": 2 }
+      }
+    },
+    {
+      "name": "line_b_warning",
+      "trigger": "counter",
+      "value": 230,
+      "actions": {
+        "trafficLight": "yellow"
+      }
+    },
+    {
+      "name": "line_b_end",
+      "trigger": "counter",
+      "value": 260,
+      "actions": {
+        "trafficLight": "red",
+        "buzzer": { "cycles": 3, "frequency": 2 }
+      }
+    }
+  ],
+  "buttons": [
+    {
+      "label": "START END",
+      "class": "start",
+      "actions": {
+        "resetCounter": true,
+        "resetState": true,
+        "trafficLight": "red",
+        "setDisplay": { "center": 10 },
+        "setCountDown": { "center": true },
+        "buzzer": { "cycles": 2, "frequency": 2 }
+      }
+    },
+    {
+      "label": "EMERGENCY STOP",
+      "class": "reset",
+      "actions": {
+        "trafficLight": "red",
+        "pauseDisplay": ["center"],
+        "buzzer": { "cycles": 5, "frequency": 3 }
+      }
+    },
+    {
+      "label": "RESUME",
+      "class": "",
+      "actions": {
+        "trafficLight": "green",
+        "resumeDisplay": ["center"]
+      }
+    },
+    {
+      "label": "LINE A SHOOT",
+      "class": "",
+      "actions": {
+        "trafficLight": "green",
+        "setDisplay": { "center": 120 },
+        "setCountDown": { "center": true },
+        "buzzer": { "cycles": 1, "frequency": 2 }
+      }
+    },
+    {
+      "label": "LINE B SHOOT",
+      "class": "",
+      "actions": {
+        "trafficLight": "green",
+        "setDisplay": { "center": 120 },
+        "setCountDown": { "center": true },
+        "buzzer": { "cycles": 2, "frequency": 2 }
+      }
+    },
+    {
+      "label": "WARNING 30s",
+      "class": "",
+      "actions": {
+        "trafficLight": "yellow",
+        "buzzer": { "duration": 0.5 }
+      }
+    },
+    {
+      "label": "STOP SHOOTING",
+      "class": "",
+      "actions": {
+        "trafficLight": "red",
+        "pauseDisplay": ["center"],
+        "buzzer": { "cycles": 3, "frequency": 2 }
+      }
+    }
+  ]
+}
