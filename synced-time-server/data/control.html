@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timer Control</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .panel {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 20px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    }
+    h1, h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    
+    /* Timer display */
+    .timer-display {
+      text-align: center;
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .config-name {
+      font-size: 18px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    .timer-number {
+      font-size: 60px;
+      font-weight: bold;
+      color: #333;
+      font-family: 'Arial Black', sans-serif;
+    }
+    .timer-info {
+      font-size: 16px;
+      color: #666;
+      margin-top: 10px;
+    }
+    
+    /* Button grid */
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    button {
+      font-size: 16px;
+      font-weight: bold;
+      padding: 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      color: white;
+      text-transform: uppercase;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+      transition: all 0.2s;
+      white-space: normal;
+      word-wrap: break-word;
+    }
+    button:active { transform: scale(0.95); }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* Button classes */
+    .btn-start { background: #4caf50; }
+    .btn-stop { background: #f44336; }
+    .btn-reset { background: #ff9800; }
+    .btn-default { background: #2196f3; }
+    
+    /* Config management */
+    .config-info {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .file-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+    .file-controls button {
+      flex: 1;
+      min-width: 150px;
+      font-size: 14px;
+      padding: 12px 20px;
+    }
+    .btn-download { background: #2196f3; }
+    .btn-upload { background: #ff9800; }
+    input[type="file"] {
+      display: none;
+    }
+    
+    /* Status messages */
+    #status {
+      text-align: center;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .status-success { background: #c8e6c9; color: #2e7d32; }
+    .status-error { background: #ffcdd2; color: #c62828; }
+    
+    /* JSON editor */
+    textarea {
+      width: 100%;
+      min-height: 300px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="panel">
+      <h1>Archery Timer Control</h1>
+      <div class="timer-display">
+        <div class="config-name" id="configName">Loading...</div>
+        <div class="timer-number" id="timer">000</div>
+        <div class="timer-info">
+          <span id="stateInfo">State: Stopped</span> | 
+          <span id="lineInfo">Line: A</span> | 
+          <span id="endInfo">End: 0</span>
+        </div>
+      </div>
+      
+      <div id="buttonPanel">
+        <h2>Controls</h2>
+        <div class="button-grid" id="buttonGrid">
+          <button class="btn-default" disabled>Loading buttons...</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <h2>Configuration Management</h2>
+      <div class="config-info">
+        <strong>Current Config:</strong> <span id="currentConfigName">-</span><br>
+        <strong>Display Mode:</strong> <span id="displayMode">-</span>
+      </div>
+      
+      <div class="file-controls">
+        <button class="btn-download" onclick="downloadConfig()">Download Config</button>
+        <button class="btn-upload" onclick="document.getElementById('fileInput').click()">Upload Config</button>
+        <input type="file" id="fileInput" accept=".json" onchange="loadConfigFile(event)">
+      </div>
+      <div id="status" style="display:none;"></div>
+    </div>
+    
+    <div class="panel">
+      <h2>JSON Config Editor</h2>
+      <textarea id="jsonEditor" placeholder="Paste JSON config here..."></textarea>
+      <button class="btn-upload" onclick="saveJsonEditor()" style="width: 100%;">Apply Config</button>
+    </div>
+    
+    <div class="panel">
+      <h2>API Status</h2>
+      <pre id="apiStatus" style="background:#f5f5f5;padding:15px;border-radius:8px;overflow:auto;max-height:300px;"></pre>
+      <button class="btn-default" onclick="refreshApiStatus()" style="width:100%;">Refresh Status</button>
+    </div>
+  </div>
+  
+  <script>
+    const timerEl = document.getElementById('timer');
+    const configNameEl = document.getElementById('configName');
+    const stateInfoEl = document.getElementById('stateInfo');
+    const lineInfoEl = document.getElementById('lineInfo');
+    const endInfoEl = document.getElementById('endInfo');
+    const buttonGrid = document.getElementById('buttonGrid');
+    const jsonEditor = document.getElementById('jsonEditor');
+    
+    let eventSource;
+    let currentConfig = null;
+    
+    function executeAction(actions) {
+      fetch('/api/action', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({actions: actions})
+      })
+      .then(response => response.text())
+      .then(data => console.log('Action executed:', data))
+      .catch(err => console.error('Action failed:', err));
+    }
+    
+    function createButton(buttonConfig) {
+      const btn = document.createElement('button');
+      btn.textContent = buttonConfig.label;
+      
+      // Set button class
+      if (buttonConfig.class === 'start') {
+        btn.className = 'btn-start';
+      } else if (buttonConfig.class === 'stop' || buttonConfig.class === 'reset') {
+        btn.className = 'btn-reset';
+      } else {
+        btn.className = 'btn-default';
+      }
+      
+      btn.addEventListener('click', () => {
+        executeAction(buttonConfig.actions);
+      });
+      
+      return btn;
+    }
+    
+    function loadButtons(config) {
+      buttonGrid.innerHTML = '';
+      
+      if (config.buttons && config.buttons.length > 0) {
+        config.buttons.forEach(buttonConfig => {
+          buttonGrid.appendChild(createButton(buttonConfig));
+        });
+      } else {
+        buttonGrid.innerHTML = '<p style="grid-column: 1/-1;text-align:center;color:#999;">No buttons defined in config</p>';
+      }
+    }
+    
+    function loadConfig() {
+      fetch('/config')
+        .then(response => response.json())
+        .then(config => {
+          currentConfig = config;
+          configNameEl.textContent = config.name || 'Unnamed Config';
+          document.getElementById('currentConfigName').textContent = config.name || 'Unnamed';
+          document.getElementById('displayMode').textContent = config.displayMode || 'center';
+          
+          jsonEditor.value = JSON.stringify(config, null, 2);
+          loadButtons(config);
+          showStatus('Configuration loaded', 'success');
+        })
+        .catch(err => {
+          showStatus('Failed to load configuration', 'error');
+          console.error(err);
+        });
+    }
+    
+    function downloadConfig() {
+      fetch('/config')
+        .then(response => response.json())
+        .then(data => {
+          const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'archery-timer-config.json';
+          a.click();
+          URL.revokeObjectURL(url);
+          showStatus('Configuration downloaded!', 'success');
+        });
+    }
+    
+    function loadConfigFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const cfg = JSON.parse(e.target.result);
+          uploadConfig(cfg);
+        } catch (err) {
+          showStatus('Invalid JSON file', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+    
+    function saveJsonEditor() {
+      try {
+        const cfg = JSON.parse(jsonEditor.value);
+        uploadConfig(cfg);
+      } catch (err) {
+        showStatus('Invalid JSON: ' + err.message, 'error');
+      }
+    }
+    
+    function uploadConfig(cfg) {
+      fetch('/config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(cfg)
+      })
+      .then(response => response.json())
+      .then(data => {
+        showStatus('Configuration uploaded successfully!', 'success');
+        loadConfig();
+      })
+      .catch(err => {
+        showStatus('Failed to upload configuration', 'error');
+      });
+    }
+    
+    function refreshApiStatus() {
+      fetch('/api/status')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('apiStatus').textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(err => {
+          document.getElementById('apiStatus').textContent = 'Error: ' + err.message;
+        });
+    }
+    
+    function showStatus(msg, type) {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = msg;
+      statusEl.className = 'status-' + type;
+      statusEl.style.display = 'block';
+      setTimeout(() => statusEl.style.display = 'none', 3000);
+    }
+    
+    function connect() {
+      eventSource = new EventSource('/events');
+      
+      eventSource.onmessage = function(e) {
+        try {
+          const data = JSON.parse(e.data);
+          
+          // Update display based on mode
+          if (data.displayMode === 'center') {
+            timerEl.textContent = data.center.toString().padStart(3, '0');
+          } else if (data.displayMode === 'left-right') {
+            timerEl.textContent = `L:${data.left} R:${data.right}`;
+          }
+          
+          stateInfoEl.textContent = 'State: ' + data.state;
+          lineInfoEl.textContent = 'Line: ' + data.line;
+          endInfoEl.textContent = 'End: ' + data.end;
+        } catch (err) {
+          console.error('Parse error:', err);
+        }
+      };
+      
+      eventSource.onerror = function() {
+        eventSource.close();
+        setTimeout(connect, 2000);
+      };
+    }
+    
+    // Initialize
+    loadConfig();
+    connect();
+    refreshApiStatus();
+  </script>
+</body>
+</html>
