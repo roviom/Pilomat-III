@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Archery Timer</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="bg-red">
+  <div id="status" class="status-badge disconnected">Connecting...</div>
+  
+  <!-- Center display mode -->
+  <div id="centerMode" class="display-container">
+    <div id="lineInfo" class="line-info">Line A</div>
+    <div class="timer-box">
+      <div id="timerCenter" class="timer-number">000</div>
+    </div>
+  </div>
+  
+  <!-- Left-Right display mode -->
+  <div id="leftRightMode" class="display-container" style="display:none;">
+    <div class="dual-display">
+      <div class="side-container left-side" id="leftContainer">
+        <div class="side-label">LEFT</div>
+        <div class="timer-box small">
+          <div id="timerLeft" class="timer-number">00</div>
+        </div>
+      </div>
+      <div class="side-container right-side" id="rightContainer">
+        <div class="side-label">RIGHT</div>
+        <div class="timer-box small">
+          <div id="timerRight" class="timer-number">00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const statusEl = document.getElementById('status');
+    const bodyEl = document.body;
+    const centerMode = document.getElementById('centerMode');
+    const leftRightMode = document.getElementById('leftRightMode');
+    const timerCenter = document.getElementById('timerCenter');
+    const timerLeft = document.getElementById('timerLeft');
+    const timerRight = document.getElementById('timerRight');
+    const lineInfo = document.getElementById('lineInfo');
+    const leftContainer = document.getElementById('leftContainer');
+    const rightContainer = document.getElementById('rightContainer');
+    
+    let eventSource;
+    let clockOffset = 0;
+    let isSyncing = false;
+    
+    async function syncClock() {
+      if (isSyncing) return;
+      isSyncing = true;
+      
+      const samples = [];
+      for (let i = 0; i < 5; i++) {
+        const t0 = performance.now();
+        try {
+          const response = await fetch('/time');
+          const t3 = performance.now();
+          const data = await response.json();
+          const rtt = t3 - t0;
+          const offset = data.serverTime - (t0 + rtt / 2);
+          samples.push({ offset, rtt });
+        } catch (e) {
+          console.error('Sync failed:', e);
+        }
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      
+      if (samples.length > 0) {
+        samples.sort((a, b) => a.rtt - b.rtt);
+        clockOffset = samples[0].offset;
+        console.log('Clock synced. Offset:', clockOffset, 'ms, RTT:', samples[0].rtt, 'ms');
+      }
+      isSyncing = false;
+    }
+    
+    syncClock();
+    setInterval(syncClock, 10000);
+    
+    function updateDisplay(data) {
+      // Switch display mode
+      if (data.displayMode === 'center') {
+        centerMode.style.display = 'flex';
+        leftRightMode.style.display = 'none';
+        
+        timerCenter.textContent = data.center.toString().padStart(3, '0');
+        lineInfo.textContent = 'Line ' + data.line;
+        
+        // Update background color based on traffic light
+        bodyEl.className = '';
+        if (data.trafficLight === 'red') {
+          bodyEl.classList.add('bg-red');
+        } else if (data.trafficLight === 'green') {
+          bodyEl.classList.add('bg-green');
+        } else if (data.trafficLight === 'yellow') {
+          bodyEl.classList.add('bg-orange');
+        }
+      } else if (data.displayMode === 'left-right') {
+        centerMode.style.display = 'none';
+        leftRightMode.style.display = 'flex';
+        
+        timerLeft.textContent = data.left.toString().padStart(2, '0');
+        timerRight.textContent = data.right.toString().padStart(2, '0');
+        
+        // Update left side background
+        leftContainer.className = 'side-container left-side';
+        if (data.trafficLightLeft === 'red') {
+          leftContainer.classList.add('bg-red');
+        } else if (data.trafficLightLeft === 'green') {
+          leftContainer.classList.add('bg-green');
+        } else if (data.trafficLightLeft === 'yellow') {
+          leftContainer.classList.add('bg-orange');
+        }
+        
+        // Update right side background
+        rightContainer.className = 'side-container right-side';
+        if (data.trafficLightRight === 'red') {
+          rightContainer.classList.add('bg-red');
+        } else if (data.trafficLightRight === 'green') {
+          rightContainer.classList.add('bg-green');
+        } else if (data.trafficLightRight === 'yellow') {
+          rightContainer.classList.add('bg-orange');
+        }
+        
+        // Add paused indicator
+        if (data.pausedLeft) {
+          leftContainer.classList.add('paused');
+        }
+        if (data.pausedRight) {
+          rightContainer.classList.add('paused');
+        }
+      }
+    }
+    
+    function connect() {
+      eventSource = new EventSource('/events');
+      
+      eventSource.onopen = function() {
+        statusEl.textContent = 'Connected';
+        statusEl.className = 'status-badge connected';
+      };
+      
+      eventSource.onmessage = function(e) {
+        try {
+          const data = JSON.parse(e.data);
+          updateDisplay(data);
+        } catch (err) {
+          console.error('Parse error:', err);
+        }
+      };
+      
+      eventSource.onerror = function() {
+        statusEl.textContent = 'Disconnected';
+        statusEl.className = 'status-badge disconnected';
+        eventSource.close();
+        setTimeout(connect, 2000);
+      };
+    }
+    
+    connect();
+  </script>
+</body>
+</html>
