@@ -1,0 +1,99 @@
+{
+  "name": "Alternating Match - 20s per arrow",
+  "displayMode": "left-right",
+  "maxCounter": 999,
+  "states": [
+    {
+      "name": "Match Active",
+      "duration": 999
+    }
+  ],
+  "events": [],
+  "buttons": [
+    {
+      "label": "START MATCH",
+      "class": "start",
+      "actions": {
+        "resetCounter": true,
+        "trafficLightLeft": "green",
+        "trafficLightRight": "red",
+        "setDisplay": { "left": 20, "right": 20 },
+        "setCountDown": { "left": true, "right": true },
+        "pauseDisplay": ["right"],
+        "buzzer": { "cycles": 2, "frequency": 2 }
+      }
+    },
+    {
+      "label": "SWITCH TO LEFT",
+      "class": "",
+      "actions": {
+        "trafficLightLeft": "green",
+        "trafficLightRight": "red",
+        "setDisplay": { "left": 20 },
+        "pauseDisplay": ["right"],
+        "resumeDisplay": ["left"]
+      }
+    },
+    {
+      "label": "SWITCH TO RIGHT",
+      "class": "",
+      "actions": {
+        "trafficLightLeft": "red",
+        "trafficLightRight": "green",
+        "setDisplay": { "right": 20 },
+        "pauseDisplay": ["left"],
+        "resumeDisplay": ["right"]
+      }
+    },
+    {
+      "label": "BOTH SHOOT",
+      "class": "",
+      "actions": {
+        "trafficLightLeft": "green",
+        "trafficLightRight": "green",
+        "setDisplay": { "left": 20, "right": 20 },
+        "resumeDisplay": ["left", "right"]
+      }
+    },
+    {
+      "label": "EMERGENCY STOP",
+      "class": "reset",
+      "actions": {
+        "trafficLightLeft": "red",
+        "trafficLightRight": "red",
+        "pauseDisplay": ["left", "right"],
+        "buzzer": { "cycles": 5, "frequency": 3 }
+      }
+    },
+    {
+      "label": "RESUME LEFT",
+      "class": "",
+      "actions": {
+        "trafficLightLeft": "green",
+        "trafficLightRight": "red",
+        "resumeDisplay": ["left"],
+        "pauseDisplay": ["right"]
+      }
+    },
+    {
+      "label": "RESUME RIGHT",
+      "class": "",
+      "actions": {
+        "trafficLightLeft": "red",
+        "trafficLightRight": "green",
+        "resumeDisplay": ["right"],
+        "pauseDisplay": ["left"]
+      }
+    },
+    {
+      "label": "END MATCH",
+      "class": "reset",
+      "actions": {
+        "trafficLightLeft": "red",
+        "trafficLightRight": "red",
+        "pauseDisplay": ["left", "right"],
+        "buzzer": { "cycles": 3, "frequency": 2 }
+      }
+    }
+  ]
+}
